@@ -1,6 +1,7 @@
 import { Component, ViewChild, OnInit, DoCheck } from "@angular/core";
 import {} from "googlemaps";
 import { LatLong } from './models/lat-long';
+import { MapService } from './services/map.service';
 
 @Component({
   selector: "app-root",
@@ -12,7 +13,7 @@ import { LatLong } from './models/lat-long';
           <p (click)="setDirection('W')" class="direction">W</p>
           <div class="center">
             <p (click)="setDirection('N')" class="direction">N</p>
-            <input id="bearing">
+            <input readonly id="bearing">
             <p (click)="setDirection('S')" class="direction">S</p>
           </div>
           <p (click)="setDirection('E')" class="direction">E</p>
@@ -42,8 +43,9 @@ export class AppComponent implements OnInit {
   public degreesToMiles : number = 0.014456716590528;
   public message: string;
   public searchDistance: number;
+  public searchItem : LatLong;
 
-  constructor() {}
+  constructor(private mapService: MapService) {}
 
   //Initialize map with default settings
   ngOnInit(): void {
@@ -62,29 +64,42 @@ export class AppComponent implements OnInit {
     this.setDistance();
     if (this.validateInputs()){
       this.searchDistance = this.searchDistance * this.degreesToMiles;
+
       switch (this.searchDirection) {
         case "N":
           this.currentLocation = { lat: this.map.getCenter().lat() + this.searchDistance, lng: this.map.getCenter().lng()};
           this.map.setCenter(this.currentLocation);
+          this.createSearchItem();
           break;
         case "E":
           this.currentLocation = { lat: this.map.getCenter().lat(), lng: this.map.getCenter().lng() + this.searchDistance};
           this.map.setCenter(this.currentLocation);
+          this.createSearchItem();
           break;
         case "S":
           this.currentLocation = { lat: this.map.getCenter().lat() - this.searchDistance, lng: this.map.getCenter().lng()};
           this.map.setCenter(this.currentLocation);
+          this.createSearchItem();
           break;
         case "W":
           this.currentLocation = { lat: this.map.getCenter().lat(), lng: this.map.getCenter().lng() - this.searchDistance};
           this.map.setCenter(this.currentLocation);
-          break;
+          this.createSearchItem();
+          break;  
       } 
-
-      // let search : LatLong = {
-      //   lat: this.map.getCenter
-      // }
     }
+  }
+
+  createSearchItem(){
+    this.searchItem = {
+      lat: this.currentLocation.lat,
+      lng: this.currentLocation.lng,
+      bearing: this.searchDirection,
+      distance: this.searchDistance
+    }
+
+    console.log(this.searchItem);
+    this.mapService.createLatLong(this.searchItem).subscribe();
   }
 
   setDirection(direction: string){
@@ -107,5 +122,4 @@ export class AppComponent implements OnInit {
       return false;
     }
   }
-
 }
