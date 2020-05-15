@@ -8,24 +8,38 @@ import { MapService } from './services/map.service';
   template: `
     <div class="main-container">
       <div #map style="width:100%;height:400px"></div>
-      <div class="controls">
-        <div class="compass">
-          <p (click)="setDirection('W')" class="direction">W</p>
-          <div class="center">
-            <p (click)="setDirection('N')" class="direction">N</p>
-            <input readonly id="bearing">
-            <p (click)="setDirection('S')" class="direction">S</p>
+      <div class="bottom">
+        <div class="controls">
+          <div class="compass">
+            <p (click)="setDirection('W')" class="direction">W</p>
+            <div class="center">
+              <p (click)="setDirection('N')" class="direction">N</p>
+              <input readonly id="bearing">
+              <p (click)="setDirection('S')" class="direction">S</p>
+            </div>
+            <p (click)="setDirection('E')" class="direction">E</p>
           </div>
-          <p (click)="setDirection('E')" class="direction">E</p>
+          <div class="distance">
+            <p>Distance to travel:</p>
+            <input id="distance" type="number" placeholder="miles">
+            <p class="message">{{message}}</p>
+            <div class="search">
+              <mat-icon color="primary">search</mat-icon>
+              <p (click)="search()">SEARCH</p>
+            </div>
+          </div>
         </div>
-        <div class="distance">
-          <p>Distance to travel:</p>
-          <input id="distance" type="number" placeholder="miles">
-          <p class="message">{{message}}</p>
-          <div class="search">
-            <mat-icon color="primary">search</mat-icon>
-            <p (click)="search()">SEARCH</p>
-          </div>
+        <div class="searches">
+          <h2>Search History:</h2>
+          <app-search *ngFor="let s of searches"
+          [id]="s.id"
+          [lat]="s.lat"
+          [lng]="s.lng"
+          [bearing]="s.bearing"
+          [distance]="s.distance"
+          (submitLatLong)="searhItemClicked($event)"
+          (deleteSearch)="deleteSearchItem($event)">
+          </app-search>
         </div>
       </div>
     </div>
@@ -44,6 +58,7 @@ export class AppComponent implements OnInit {
   public message: string;
   public searchDistance: number;
   public searchItem : LatLong;
+  public searches : LatLong[] = [];
 
   constructor(private mapService: MapService) {}
 
@@ -58,6 +73,8 @@ export class AppComponent implements OnInit {
       this.mapElement.nativeElement,
       mapProperties
     );
+
+    this.loadSearches();
   }
 
   search(){
@@ -90,7 +107,7 @@ export class AppComponent implements OnInit {
     }
   }
 
-  createSearchItem(){
+  async createSearchItem(){
     this.searchItem = {
       lat: this.currentLocation.lat,
       lng: this.currentLocation.lng,
@@ -98,8 +115,18 @@ export class AppComponent implements OnInit {
       distance: this.searchDistance
     }
 
-    console.log(this.searchItem);
-    this.mapService.createLatLong(this.searchItem).subscribe();
+    this.mapService.createLatLong(this.searchItem).subscribe(() => this.loadSearches());
+
+  }
+
+  loadSearches() {
+    this.mapService.getLatLongs().subscribe(latLongs => {
+      this.searches = latLongs;
+    });
+  }
+
+  deleteSearchItem(searchId : number){
+    this.mapService.deleteLatLong(searchId).subscribe(() => this.loadSearches());
   }
 
   setDirection(direction: string){
@@ -111,6 +138,11 @@ export class AppComponent implements OnInit {
     if (+(<HTMLInputElement>document.getElementById("distance")).value) {
       this.searchDistance = +(<HTMLInputElement>document.getElementById("distance")).value;
     }
+  }
+
+  searhItemClicked(latlng: google.maps.LatLngLiteral){
+    this.map.setCenter(latlng);
+    window.scrollTo(0, 0);
   }
 
   validateInputs(): boolean {

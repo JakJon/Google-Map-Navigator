@@ -21,4 +21,9 @@ export class MapService {
     return this.http.post<LatLong>(this.apiUrl, latLong);
   }
 
+  deleteLatLong(id: number): Observable<{}> {
+    const deleteURL = `https://localhost:44317/api/LatLongs/${id}`;
+    return this.http.delete(deleteURL);
+  }
+
 }
